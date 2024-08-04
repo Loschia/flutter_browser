@@ -1,4 +1,6 @@
-import '../../index.dart';
+import 'package:flutter/material.dart';
+
+import '../browser_controller.dart';
 
 class WebRenderer extends StatelessWidget {
   final BrowserController controller;
@@ -7,6 +9,10 @@ class WebRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Container(
+      color: Colors.red,
+      height: 100,
+      width: 200,
+    );
   }
 }

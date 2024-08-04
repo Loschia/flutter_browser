@@ -1,10 +1,64 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_browser/browser/storage/index.dart';
+import 'package:flutter_browser/browser/storage/storage.dart';
+
+import 'components/browser_navigation_controller.dart';
+
 /// Controls the navigation and actions of a web browser.
 class BrowserController {
-  /// Creates a `BrowserController` object with the specified `initialUrl`.
-  BrowserController({required String initialUrl})
-      : _navigationController = _BrowserNavigationController(initialUrl);
+  /// Creates a `BrowserController` object with the specified `initialUrl` and an optional `storage` object.
+  ///
+  /// If `storage` is not provided, a new `Storage` object is created.
+  BrowserController({required String initialUrl, Storage? storage})
+      : _navigationController = BrowserNavigationController(initialUrl),
+        _storage = storage ?? Storage();
 
-  final _BrowserNavigationController _navigationController; // Private navigation controller instance
+  Storage _storage; // Storage object associated with this browser controller
+
+  /// Gets the storage object associated with this browser controller
+  Storage get storage => _storage;
+
+  /// Sets the storage object for this browser controller
+  set storage(Storage newStorage) {
+    _storage = newStorage;
+    // TODO: Notify listeners of storage change (if needed)
+  }
+
+  bool _isInitialized = false; // Flag to track initialization status
+
+  /// Initializes the browser controller and its underlying web rendering engine.
+  ///
+  /// This method should be called before using any other methods of the controller.
+  Future<void> initialize() async {
+    if (_isInitialized) return; // Already initialized, do nothing
+
+    if (kIsWeb && !kIsWasm) throw UnsupportedError('This application requires WebAssembly support.');
+
+    // - If using WebAssembly + Blink, load and initialize the Blink module.
+    // - If using CEF, initialize CEF components and load libraries.
+
+    if (kIsWasm) await _initializeWasm();
+    if (Platform.isWindows) await _initializeWindows();
+    if (Platform.isMacOS) await _initializeMacOS();
+    if (Platform.isAndroid) await _initializeAndroid();
+    if (Platform.isIOS) await _initializeIOS();
+
+    _isInitialized = true;
+  }
+
+  //TODO: initialize Wasm
+  Future<void> _initializeWasm() async {}
+  //TODO: initialize Windows
+  Future<void> _initializeWindows() async {}
+  //TODO: initialize Macos
+  Future<void> _initializeMacOS() async {}
+  //TODO: initialize Android
+  Future<void> _initializeAndroid() async {}
+  //TODO: initialize iOS
+  Future<void> _initializeIOS() async {}
+  final BrowserNavigationController _navigationController; // Private navigation controller instance
 
   /// Gets the URL of the currently displayed page.
   String get currentPage => _navigationController.currentPage;
@@ -14,6 +68,9 @@ class BrowserController {
 
   /// Checks if the browser can navigate forward to a next page.
   bool get canGoForward => _navigationController.canGoForward;
+
+  /// Checks if the browser is initialized.
+  bool get isInitialized => _isInitialized;
 
   /// Navigates to the previous page in the history.
   ///
@@ -94,10 +151,16 @@ class BrowserController {
     return true;
   }
 
-  /// Clears the browsing history.
-  void clearHistory() {
-    // TODO: Clear the navigation history
-  }
+  /// Clears the browsing history based on the specified option.
+  ///
+  /// - `option`: Determines which part of the history to clear.
+  ///   - `all`: Clears the entire history, excluding the current page.
+  ///   - `before`: Clears all history entries before the current page.
+  ///   - `after`: Clears all history entries after the current page.
+  ///   - `current`: Clears only the current page and move to the previous page.
+  ///
+  /// If `option` is not provided or is invalid, the entire history is cleared by default, excluding the current page.
+  void clearHistory({String option = 'all'}) => _navigationController.clearHistory(option);
 
   /// Adds the current web page to the user's favorites (bookmarks).
   void addToFavorites() {
@@ -109,10 +172,12 @@ class BrowserController {
     // TODO: Remove the current page from favorites
   }
 
+  double zoomLevel = 1.0;
+
   /// Sets the zoom level of the web page.
   ///
   /// The `zoomLevel` parameter represents a scaling factor (e.g., 1.0 for normal zoom, 1.5 for 150% zoom).
-  void setZoomLevel(double zoomLevel) {
+  void setZoomLevel({double zoomLevel = 1.0}) {
     // TODO: Set the zoom level of the web page
   }
 
@@ -169,70 +234,12 @@ class BrowserController {
     // TODO: Handle loading state changes
     // You might want to update a progress bar, enable/disable navigation buttons, etc.
   }
-}
 
-/// Represents the possible navigation actions in a web browser.
-enum _NavigationState {
-  goBack,
-
-  /// Navigates to the previous page in history.
-  goForward,
-
-  /// Navigates to the next page in history.
-  refresh,
-
-  /// Reloads the current page.
-}
-
-/// Internal class for managing the navigation history of a web browser.
-class _BrowserNavigationController {
-  /// Creates a `_BrowserNavigation` object with the specified `initialUrl`.
-  _BrowserNavigationController(String initialUrl) : navigationList = [initialUrl];
-
-  final List<String> navigationList;
-
-  /// Stores the history of visited URLs.
-  int _currentIndex = 0;
-
-  /// The index of the currently displayed page in the history.
-
-  /// Gets the URL of the currently displayed page.
-  String get currentPage => navigationList[_currentIndex];
-
-  /// Checks if the browser can navigate back to a previous page.
-  bool get canGoBack => _currentIndex > 0;
-
-  /// Checks if the browser can navigate forward to a next page.
-  bool get canGoForward => _currentIndex < navigationList.length - 1;
-
-  /// Navigates to the previous page in the history.
-  /// Returns true if the navigation was successful, false otherwise.
-  bool goBack() {
-    if (!canGoBack) return false;
-    _currentIndex--;
-    return true;
-  }
-
-  /// Navigates to the next page in the history.
-  /// Returns true if the navigation was successful, false otherwise.
-  bool goForward() {
-    if (!canGoForward) return false;
-    _currentIndex++;
-    return true;
-  }
-
-  /// Reloads the current page.
-  void refresh() {
-    // TODO: Implement reload logic
-  }
-
-  /// Loads a new URL, replacing the current page and clearing the forward history.
-  void loadUrl(String url) {
-    if (canGoForward) {
-      // Remove forward history if we're navigating to a new page
-      navigationList.removeRange(_currentIndex + 1, navigationList.length);
-    }
-    navigationList.add(url);
-    _currentIndex++;
+  @override
+  String toString() {
+    return '''${_navigationController.toString()}
+    Title: ${getTitle()},
+    Reader mode: $isReaderMode
+    ''';
   }
 }
