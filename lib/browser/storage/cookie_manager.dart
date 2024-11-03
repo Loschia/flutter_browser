@@ -85,15 +85,14 @@ class CookieManager {
   /// Periodically checks for and removes expired or empty-valued `cookie`s.
   void cleanUpCookies() {
     _cookies.removeWhere((cookie) => cookie.isExpired || cookie.isEmptyValue);
-    _notifyBrowser(); // TODO: Notify the browser of the changes
+    _notifyBrowser();
   }
 
   /// Gets all cookies stored in the manager
   Set<Cookie> get getAllBrowserCookies => _cookies;
 
   /// Gets all cookies matching the given `domain` and `path`
-  Set<Cookie> getAllCookies(String? domain, String? path) =>
-      _cookies.where((cookie) => (cookie.domain == domain) && (cookie.path == path)).toSet();
+  Set<Cookie> getAllCookies(String? domain, String? path) => _cookies.where((cookie) => (cookie.domain == domain) && (cookie.path == path)).toSet();
 
   void _notifyBrowser() {
     //TODO: notify browser

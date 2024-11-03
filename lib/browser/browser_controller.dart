@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_browser/browser/storage/index.dart';
-import 'package:flutter_browser/browser/storage/storage.dart';
+import 'package:flutter_browser/browser/storage/storage_manager.dart';
 
 import 'components/browser_navigation_controller.dart';
 
@@ -11,17 +11,17 @@ class BrowserController {
   /// Creates a `BrowserController` object with the specified `initialUrl` and an optional `storage` object.
   ///
   /// If `storage` is not provided, a new `Storage` object is created.
-  BrowserController({required String initialUrl, Storage? storage})
+  BrowserController({required String initialUrl, StorageManager? storage})
       : _navigationController = BrowserNavigationController(initialUrl),
-        _storage = storage ?? Storage();
+        _storage = storage ?? StorageManager();
 
-  Storage _storage; // Storage object associated with this browser controller
+  StorageManager _storage; // Storage object associated with this browser controller
 
   /// Gets the storage object associated with this browser controller
-  Storage get storage => _storage;
+  StorageManager get storage => _storage;
 
   /// Sets the storage object for this browser controller
-  set storage(Storage newStorage) {
+  set storage(StorageManager newStorage) {
     _storage = newStorage;
     // TODO: Notify listeners of storage change (if needed)
   }
@@ -39,29 +39,46 @@ class BrowserController {
     // - If using WebAssembly + Blink, load and initialize the Blink module.
     // - If using CEF, initialize CEF components and load libraries.
 
-    if (kIsWasm) await _initializeWasm();
-    if (Platform.isWindows) await _initializeWindows();
-    if (Platform.isMacOS) await _initializeMacOS();
-    if (Platform.isAndroid) await _initializeAndroid();
-    if (Platform.isIOS) await _initializeIOS();
-
-    _isInitialized = true;
+    if (kIsWasm) {
+      _isInitialized = await _initializeWasm();
+      return;
+    }
+    // Web app doesn't support Platform usage
+    if (Platform.isWindows) _isInitialized = await _initializeWindows();
+    if (Platform.isMacOS) _isInitialized = await _initializeMacOS();
+    if (Platform.isAndroid) _isInitialized = await _initializeAndroid();
+    if (Platform.isIOS) _isInitialized = await _initializeIOS();
   }
 
   //TODO: initialize Wasm
-  Future<void> _initializeWasm() async {}
+  Future<bool> _initializeWasm() async {
+    return true;
+  }
+
   //TODO: initialize Windows
-  Future<void> _initializeWindows() async {}
+  Future<bool> _initializeWindows() async {
+    return true;
+  }
+
   //TODO: initialize Macos
-  Future<void> _initializeMacOS() async {}
+  Future<bool> _initializeMacOS() async {
+    return true;
+  }
+
   //TODO: initialize Android
-  Future<void> _initializeAndroid() async {}
+  Future<bool> _initializeAndroid() async {
+    return true;
+  }
+
   //TODO: initialize iOS
-  Future<void> _initializeIOS() async {}
+  Future<bool> _initializeIOS() async {
+    return true;
+  }
+
   final BrowserNavigationController _navigationController; // Private navigation controller instance
 
   /// Gets the URL of the currently displayed page.
-  String get currentPage => _navigationController.currentPage;
+  String get currentPage => _navigationController.currentURL;
 
   /// Checks if the browser can navigate back to a previous page.
   bool get canGoBack => _navigationController.canGoBack;
@@ -94,6 +111,7 @@ class BrowserController {
   void refresh() {
     // TODO: Implement reload logic
     // TODO: Notify listeners of navigation change
+    // This method should be universal to load the current page. The other method change the url, this method download the current page. This means I can call this method any time the URL change
   }
 
   /// Loads a new URL, replacing the current page and clearing the forward history.
@@ -160,7 +178,7 @@ class BrowserController {
   ///   - `current`: Clears only the current page and move to the previous page.
   ///
   /// If `option` is not provided or is invalid, the entire history is cleared by default, excluding the current page.
-  void clearHistory({String option = 'all'}) => _navigationController.clearHistory(option);
+  void clearHistory({ClearHistoryOption option = ClearHistoryOption.all}) => _navigationController.clearHistory(option);
 
   /// Adds the current web page to the user's favorites (bookmarks).
   void addToFavorites() {

@@ -17,10 +17,4 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
-#TODO: force wasm build for the web build when available here
-#  web:
-#    compiler:
-#      release:
-#        module: wasm
-#      debug:
-#        module: wasm
+  uses-material-design: true

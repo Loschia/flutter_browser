@@ -3,15 +3,14 @@ class BrowserNavigationController {
   /// Creates a `_BrowserNavigation` object with the specified `initialUrl`.
   BrowserNavigationController(String initialUrl) : _navigationList = [initialUrl];
 
+  /// Stores the history of visited URLs.
   final List<String> _navigationList;
 
-  /// Stores the history of visited URLs.
+  /// The index of the currently displayed page in the history.
   int _currentIndex = 0;
 
-  /// The index of the currently displayed page in the history.
-
   /// Gets the URL of the currently displayed page.
-  String get currentPage => _navigationList[_currentIndex];
+  String get currentURL => _navigationList[_currentIndex];
 
   /// Checks if the browser can navigate back to a previous page.
   bool get canGoBack => _currentIndex > 0;
@@ -24,6 +23,7 @@ class BrowserNavigationController {
   bool goBack() {
     if (!canGoBack) return false;
     _currentIndex--;
+    refresh();
     return true;
   }
 
@@ -32,22 +32,35 @@ class BrowserNavigationController {
   bool goForward() {
     if (!canGoForward) return false;
     _currentIndex++;
+    refresh();
     return true;
   }
 
   /// Reloads the current page.
   void refresh() {
-    // TODO: Implement reload logic
+    //TODO: Implement reload logic
   }
 
-  /// Loads a new URL, replacing the current page and clearing the forward history.
+  /// Loads a new URL, replacing the current page and clearing the forward history if a new page is being loaded.
+  ///
+  /// If the new URL matches the next entry in forward history, navigates forward to avoid duplicate entries.
+  /// Otherwise, clears forward history and updates the navigation list with the new URL.
+  ///
+  /// - `url`: The URL to load.
   void loadUrl(String url) {
+    if (currentURL == url) return;
+
     if (canGoForward) {
-      // Remove forward history if we're navigating to a new page
+      if (_navigationList[_currentIndex + 1] == url) {
+        goForward();
+        return;
+      }
+      // Remove forward history if navigating to a new page
       _navigationList.removeRange(_currentIndex + 1, _navigationList.length);
     }
     _navigationList.add(url);
     _currentIndex++;
+    refresh();
   }
 
   /// Clears the browsing history based on the specified option.
@@ -59,22 +72,22 @@ class BrowserNavigationController {
   ///   - `current`: Clears only the current page and move to the previous page.
   ///
   /// If `option` is not provided or is invalid, the entire history is cleared by default.
-  void clearHistory(String option) {
-    final currentPage = this.currentPage;
+  void clearHistory(ClearHistoryOption option) {
+    final String currentPage = this.currentURL;
     switch (option) {
-      case 'all':
+      case ClearHistoryOption.all:
         _navigationList.clear();
         _navigationList.add(currentPage); // Re-add the current page
         _currentIndex = 0; // Reset the current index
         break;
-      case 'before':
+      case ClearHistoryOption.before:
         _navigationList.removeRange(0, _currentIndex);
         _currentIndex = 0; // Reset the current index
         break;
-      case 'after':
+      case ClearHistoryOption.after:
         _navigationList.removeRange(_currentIndex + 1, _navigationList.length);
         break;
-      case 'current':
+      case ClearHistoryOption.current:
         _navigationList.removeAt(_currentIndex);
         if (_currentIndex > 0) {
           _currentIndex--; // Move to the previous page
@@ -86,15 +99,22 @@ class BrowserNavigationController {
         _currentIndex = 0; // Reset the current index
         break;
     }
-    // TODO: Notify listeners of navigation change
+    refresh();
   }
 
   @override
   String toString() {
     return '''Navigation:
-    Current page: $currentPage;
+    Current page: $currentURL;
     Can go back: $canGoBack;
     Can go forward: $canGoForward;
     Current history: $_navigationList ''';
   }
+}
+
+enum ClearHistoryOption {
+  all,
+  before,
+  after,
+  current,
 }
